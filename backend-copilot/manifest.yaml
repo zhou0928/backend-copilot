@@ -1,6 +1,6 @@
 version: 0.0.3
 type: plugin
-author: xiaozhou
+author: zhou0928
 name: backend-copilot
 label:
   en_US: Backend Copilot

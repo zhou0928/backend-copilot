@@ -1,6 +1,6 @@
 version: 0.2.0
 type: plugin
-author: xiaozhou
+author: zhou0928
 name: backend-copilot-agent
 label:
   en_US: Backend Copilot Agent

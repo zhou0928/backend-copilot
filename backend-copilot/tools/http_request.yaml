@@ -1,6 +1,6 @@
 identity:
   name: http_request
-  author: xiaozhou
+  author: zhou0928
   label:
     en_US: Backend Request
     zh_Hans: 后端请求

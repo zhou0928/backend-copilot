@@ -1,63 +1,67 @@
-# Backend Copilot（后端副驾）
+# Backend Copilot
 
-一套 Dify 插件，让 Agent 用**自然语言查询你的后端业务数据**：只需粘贴一份接口目录 YAML，无需写任何代码。
+A set of Dify plugins that lets an Agent query **your backend business data in natural language**: paste one API catalog YAML — no code needed.
 
-支持 BladeX、RuoYi、自研 Spring Boot 等任意 REST 后端。**默认只读护栏**——写接口必须双重确认才会执行。
+Works with BladeX, RuoYi, custom Spring Boot, or any REST backend. **Read-only guardrails by default** — write APIs require double opt-in.
 
 ```
-用户："本周有多少未处理工单？"
+User: "How many open tickets this week?"
   ↓
-Agent 读取接口目录 → 规划步骤（查待办列表 → 按状态过滤 → 统计）
+Agent reads the catalog → plans steps (list todos → filter by status → count)
   ↓
-调用 http_request 工具请求你的后端（自动带鉴权）
+Calls the http_request tool against your backend (auth handled automatically)
   ↓
-汇总回答："本周未处理工单共 17 条，其中 3 条已超 48 小时未响应……"
+Answers: "17 open tickets this week, 3 of them unresponded for over 48h..."
 ```
 
-## 插件组成
+> 中文文档：[README.zh-CN.md](README.zh-CN.md)
 
-| 包 | 类型 | 说明 |
+## Plugin composition
+
+| Package | Type | Description |
 |---|---|---|
-| `backend-copilot` (v0.0.3) | Tools | 通用 REST 连接器：`http_request` 调用器 + 接口目录 + 四种鉴权 + OpenAPI 导入 |
-| `backend-copilot-agent` (v0.2.0) | Agent Strategy | 通用后端 Agent 策略：规划 → 执行 → 重规划 Pipeline，复用上面的工具 |
+| `backend-copilot` (v0.0.3) | Tools | Universal REST connector: `http_request` invoker + API catalog + 4 auth types + OpenAPI import |
+| `backend-copilot-agent` (v0.2.0) | Agent Strategy | Universal backend agent strategy: plan → execute → replan pipeline, reusing the tools above |
 
-两个包均提供 `.difypkg` 文件，可离线安装到自托管 Dify（≥ 1.9.0）。
+Both ship as `.difypkg` files, installable offline into self-hosted Dify (≥ 1.9.0).
 
-## 核心特性
+## Key features
 
-- **声明式接口目录**：一份 YAML 描述你后端的所有接口（路径/参数/鉴权/分页），Agent 据此自动选择和调用
-- **四种鉴权**：`none` / `bearer`（含 OAuth2 password 模式自动登录换 token、过期自动刷新）/ `basic` / `apikey`，支持 BladeX 的 Basic 头 + Tenant-Id + 验证码预取 + SM2 国密加密
-- **只读护栏**：接口默认只读；写接口需目录标记 `write: true` **且** 凭证表单开启 `allow_write` 双重放行
-- **上下文保护**：列表结果按 `max_rows` 自动截断并附总数，防止撑爆 LLM 上下文
-- **业务信封识别**：`{code, success, data, msg}` 类返回 HTTP 200 但业务失败的场景，按配置识别为错误
-- **OpenAPI 一键导入**：从 Swagger JSON/YAML 自动生成接口目录
-- **Agent 策略自带 Pipeline**：计划（支持并行步骤）→ 执行 → 失败重规划（默认上限 3 次），带时间预算（默认 600s）熔断
+- **Declarative API catalog**: one YAML file describing all your backend APIs (path/params/auth/pagination); the Agent picks and calls them automatically
+- **Four auth types**: `none` / `bearer` (incl. OAuth2 password grant with auto login & token refresh) / `basic` / `apikey`; supports BladeX Basic header + Tenant-Id + captcha pre-fetch + SM2 encryption
+- **Read-only guardrails**: APIs are read-only by default; a write API requires both `write: true` in the catalog **and** `allow_write` in credentials
+- **Context protection**: list results auto-truncated at `max_rows` (default 50) with total count, so the LLM context never blows up
+- **Business envelope detection**: `{code, success, data, msg}` responses that return HTTP 200 but fail business-wise are recognized as errors
+- **OpenAPI one-click import**: generate a catalog automatically from Swagger JSON/YAML
+- **Strategy pipeline built in**: plan (parallel steps supported) → execute → auto replan on failure (default cap 3), with an execution time budget (default 600s)
 
-## 快速开始
+## Quick start
 
-### 1. 安装插件
+### 1. Install plugins
 
-Dify → 插件 → 安装插件 → 本地文件，依次安装两个 `.difypkg`：
+Dify → Plugins → Install → Local file, install both:
 
 - `backend-copilot.difypkg`
 - `backend-copilot-agent.difypkg`
 
-### 2. 编写接口目录
+Or via GitHub: install from `zhou0928/backend-copilot`, pick the release.
 
-复制 `examples/demo.catalog.yaml` 为起点，或直接选用现成示例：
+### 2. Write an API catalog
+
+Start from `examples/demo.catalog.yaml`, or pick a ready-made example. Full annotated example:
 
 ```yaml
 version: 1
-base_url: http://host.docker.internal:9998   # 容器内访问宿主机服务用 host.docker.internal
+base_url: http://host.docker.internal:9998   # from the plugin container, use host.docker.internal for host services
 auth:
   type: bearer
-  token_endpoint: /blade-auth/oauth/token    # 留空则不需要登录换 token
+  token_endpoint: /blade-auth/oauth/token    # omit if no login-for-token is needed
   token_params:
     grant_type: password
     scope: all
   token_body_format: form
   token_payload:
-    username: "{{username}}"                 # 占位符在安装凭证表单时替换
+    username: "{{username}}"                 # placeholders replaced from the credential form
     password: "{{password}}"
   token_extra_headers:
     Authorization: "Basic c2FiZXI6c2FiZXJfc2VjcmV0"
@@ -66,121 +70,121 @@ auth:
 defaults:
   timeout: 30
   max_rows: 50
-  extra_headers:                             # 每个业务请求都带的头
+  extra_headers:                             # headers sent with every request
     Tenant-Id: "000000"
     Blade-Requested-With: BladeHttpRequest
-  business_code_path: code                   # 业务码字段（HTTP 200 但业务失败的场景）
+  business_code_path: code                   # business envelope field (HTTP 200 but business failure)
   business_code_ok: 200
 apis:
-  - name: ticket_search                      # Agent 通过此名称选用接口
-    description: "分页查询工单列表，支持按关键字与状态过滤"   # 写清楚，Agent 靠它理解接口用途
+  - name: ticket_search                      # the Agent selects APIs by this name
+    description: "Page through tickets, filter by keyword and status"  # be specific — the Agent relies on this
     method: GET
     path: /blade-ticket/ticket/list
     params:
-      current: { type: int, required: false, description: "页码，从 1 开始" }
-      size: { type: int, required: false, description: "每页条数" }
-      keyword: { type: string, required: false, description: "标题关键字" }
+      current: { type: int, required: false, description: "Page number, starting at 1" }
+      size: { type: int, required: false, description: "Page size" }
+      keyword: { type: string, required: false, description: "Title keyword" }
     pagination: { page_param: current, size_param: size, total_path: data.total }
-    result_path: data.records                # 从响应中提取数据的 JSON 路径
+    result_path: data.records                # JSON path to extract data from the response
 
-  # 写接口示例：必须显式 write: true 才可能被 Agent 调用
+  # Write API example: must be explicitly marked write: true to be callable
   - name: ticket_create
-    description: "创建新工单"
+    description: "Create a new ticket"
     method: POST
     path: /blade-ticket/ticket/submit
     write: true
     params:
-      title: { type: string, required: true, description: "工单标题" }
+      title: { type: string, required: true, description: "Ticket title" }
 ```
 
-字段说明：
+Field reference:
 
-| 字段 | 必填 | 说明 |
+| Field | Required | Description |
 |---|---|---|
-| `base_url` | ✅ | 后端地址；Dify 容器访问宿主机服务用 `host.docker.internal` |
+| `base_url` | ✅ | Backend address; use `host.docker.internal` for host services from the Dify container |
 | `auth.type` | ✅ | `none` / `bearer` / `basic` / `apikey` |
-| `auth.token_endpoint` | | OAuth2 登录端点，配置后自动换 token 并缓存刷新 |
-| `auth.token_path` | | 从登录响应提取 token 的路径，如 `data.access_token` |
-| `defaults.max_rows` | | 列表截断上限（默认 50） |
-| `defaults.extra_headers` | | 每个请求附加的头（如租户 ID） |
-| `defaults.business_code_path/ok` | | 业务信封校验 |
-| `apis[].name` | ✅ | 接口标识，Agent 按名选用 |
-| `apis[].description` | ✅ | **写清楚用途，Agent 靠它决定何时调用** |
-| `apis[].params` | | 参数名 → 类型/必填/描述 |
-| `apis[].pagination` | | 分页参数映射 |
-| `apis[].result_path` | | 响应数据提取路径 |
-| `apis[].write` | | 写操作标记，缺省为只读 |
+| `auth.token_endpoint` | | OAuth2 login endpoint; when set, tokens are fetched and refreshed automatically |
+| `auth.token_path` | | JSON path to the token in the login response, e.g. `data.access_token` |
+| `defaults.max_rows` | | List truncation limit (default 50) |
+| `defaults.extra_headers` | | Headers attached to every request (e.g. tenant id) |
+| `defaults.business_code_path/ok` | | Business envelope validation |
+| `apis[].name` | ✅ | API identifier used by the Agent |
+| `apis[].description` | ✅ | **Describe the purpose clearly — the Agent matches user questions against it** |
+| `apis[].params` | | Param name → type/required/description |
+| `apis[].pagination` | | Pagination parameter mapping |
+| `apis[].result_path` | | JSON path to extract data from the response |
+| `apis[].write` | | Write flag; absent means read-only |
 
-### 3. 配置工具凭证
+### 3. Configure tool credentials
 
-Dify → 插件 → Backend Copilot → 授权，填入：
+Dify → Plugins → Backend Copilot → Authorize:
 
-| 字段 | 说明 |
+| Field | Description |
 |---|---|
-| 后端服务地址 | 即目录里的 `base_url` |
-| 接口目录（YAML） | 粘贴上一步编写的完整 YAML |
-| 用户名 / 密码 / Token / API Key | 替换目录中的 `{{username}}` 等占位符 |
-| 允许写操作 | 默认 `false`；开启后目录中 `write: true` 的接口才可用 |
+| Backend Base URL | Same as `base_url` in the catalog |
+| API Catalog (YAML) | Paste the full catalog YAML from the previous step |
+| Username / Password / Token / API Key | Replaces `{{username}}` etc. placeholders in the catalog |
+| Allow write | Default `false`; only when enabled can APIs marked `write: true` run |
 
-### 4. 使用 Agent 策略
+### 4. Use the Agent strategy
 
-在工作流（Chatflow / Agent 节点）中选择 **Backend Copilot** 策略：
+In a workflow (Chatflow / Agent node) choose the **Backend Copilot** strategy:
 
-| 参数 | 默认 | 说明 |
+| Parameter | Default | Description |
 |---|---|---|
-| 模型 | 必填 | 需支持 tool-call 的 LLM |
-| 查询 | 必填 | 用户问题，如"本周有多少未处理工单？" |
-| 接口目录（YAML） | 必填 | 与工具凭证中相同的目录内容 |
-| 后端工具 | 必填 | 挂载本插件的 `http_request` 工具 |
-| 只读模式 | 开 | 开启后写接口一律拦截；关闭后仅在用户明确要求写入时调用 |
-| 补充指令 | | 回答风格、约束等额外要求 |
-| 计划步骤上限 | 20 | 单次计划的最大步骤数 |
-| 重规划上限 | 3 | 失败自动重规划的次数上限 |
-| 执行时间预算（秒） | 600 | 超时熔断 |
+| Model | required | An LLM that supports tool-call |
+| Query | required | User question, e.g. "How many open tickets this week?" |
+| API catalog (YAML) | required | Same catalog content as in the tool credentials |
+| Backend tools | required | Attach the `http_request` tool from this plugin |
+| Read-only mode | on | On: write APIs are always blocked; off: they may run only when the user explicitly asks |
+| Instruction | | Extra requirements such as answer style or constraints |
+| Max plan steps | 20 | Maximum steps in one plan |
+| Max replans | 3 | Maximum automatic replans on failure |
+| Execution budget (seconds) | 600 | Timeout circuit breaker |
 
-配置完成后直接用自然语言提问即可。
+Then just ask questions in natural language.
 
-## 三份示例目录
+## Example catalogs
 
-| 示例 | 对接后端 | 预置接口 |
+| Example | Backend | Predefined APIs |
 |---|---|---|
-| `examples/bladex.catalog.yaml` | BladeX（基于 oneLineCar 真实接口） | 工单搜索/详情/评论、流程待办/已发/统计（6 个只读） |
-| `examples/ruoyi.catalog.yaml` | RuoYi | 用户列表/详情、部门树、角色列表、登录日志、服务器监控 |
-| `examples/demo.catalog.yaml` | JSONPlaceholder（公开演示，无需鉴权） | 文章列表/详情 |
+| `examples/bladex.catalog.yaml` | BladeX (real oneLineCar APIs) | Ticket search/detail/comments, workflow todo/sent/stats (6 read-only) |
+| `examples/ruoyi.catalog.yaml` | RuoYi | User list/detail, dept tree, roles, login logs, server monitor |
+| `examples/demo.catalog.yaml` | JSONPlaceholder (public demo, no auth) | Post list/detail |
 
-## 常见问题
+## FAQ
 
-**Q: 插件容器访问不到我的后端？**
-Dify 插件运行在容器里，`localhost` 指容器自身。访问宿主机服务请用 `http://host.docker.internal:<端口>`（Docker/OrbStack 通用）。
+**Q: The plugin container can't reach my backend?**
+Plugins run inside a container where `localhost` is the container itself. Use `http://host.docker.internal:<port>` to reach host services (works on Docker/OrbStack).
 
-**Q: 安装时提示 `plugin_unique_identifier is not valid`？**
-`manifest.yaml` 的 `author` 字段需与发布者 ID 一致。
+**Q: Install fails with `plugin_unique_identifier is not valid`?**
+The `author` field in `manifest.yaml` must match the publisher ID.
 
-**Q: Agent 一直不调用接口？**
-检查接口的 `description` 是否写清楚了用途——Agent 完全依赖描述来匹配用户问题。另外确认目录 YAML 与凭证表单中的一致。
+**Q: The Agent never calls any API?**
+Check each API's `description` — the Agent relies entirely on it to match user questions. Also verify the catalog YAML matches the one in credentials.
 
-**Q: 写接口被拦截？**
-三重确认：① 目录中该接口标记 `write: true`；② 凭证表单"允许写操作"设为 `true`；③ 策略参数"只读模式"关闭（或用户明确要求写入）。
+**Q: Write APIs are blocked?**
+Three checks: ① the API is marked `write: true` in the catalog; ② credential form "Allow write" is `true`; ③ the strategy's "Read-only mode" is off (or the user explicitly asked for a write).
 
-**Q: 返回 200 但 Agent 说接口报错？**
-这是业务信封失败被正确识别。检查 `business_code_path` / `business_code_ok` 是否与你的后端约定一致。
+**Q: HTTP 200 but the Agent reports an error?**
+That's the business envelope failure being correctly detected. Verify `business_code_path` / `business_code_ok` match your backend's convention.
 
-**Q: 登录换 token 失败？**
-BladeX 类网关要求登录请求带特定头（Basic、Tenant-Id），确认 `token_extra_headers` 配置完整；`grant_type`/`scope` 类参数需放 `token_params`（走 URL query 而非 body）。
+**Q: Login-for-token fails?**
+Gateways like BladeX require specific headers on the login request (Basic, Tenant-Id) — check `token_extra_headers`. Params like `grant_type`/`scope` belong in `token_params` (sent as URL query, not body).
 
-## 本地开发
+## Local development
 
 ```bash
-# 安装依赖并跑测试（74 例）
+# Install deps and run tests (74 cases)
 uv sync && uv run python -m pytest -q
 
-# 打包（自动处理 .venv 排除）
+# Package (handles .venv exclusion automatically)
 ./package-plugin.sh backend-copilot
 ./package-plugin.sh backend-copilot-agent
 ```
 
-> 注意：`dify plugin package` 不会排除 `.venv`，会导致超 50MB 限制，请使用仓库自带的 `package-plugin.sh`。
+> Note: `dify plugin package` does not exclude `.venv`, which busts the 50MB limit — use the bundled `package-plugin.sh`.
 
 ## License
 
-见仓库 LICENSE；隐私说明见 PRIVACY.md。
+See LICENSE in the repository; privacy statement in PRIVACY.md.
