@@ -1,0 +1,37 @@
+version: 0.2.0
+type: plugin
+author: xiaozhou
+name: backend-copilot-agent
+label:
+  en_US: Backend Copilot Agent
+  zh_Hans: 后端副驾驶 Agent
+description:
+  en_US: "Agent strategy for Backend Copilot: plans multi-step tool calls, executes them against your registered backend catalog, replans on errors. Read-only guardrails by default. Requires the backend-copilot tools plugin."
+  zh_Hans: "后端副驾驶 Agent 策略：多步规划→执行→按需重规划，配合 backend-copilot 工具插件查询任意已登记的后端接口。默认只读护栏。"
+icon: icon.svg
+icon_dark: icon-dark.svg
+resource:
+  memory: 268435456
+  permission:
+    model:
+      enabled: true
+      llm: true
+    tool:
+      enabled: true
+plugins:
+  agent_strategies:
+    - provider/backend-copilot.yaml
+meta:
+  version: 0.2.0
+  arch:
+    - amd64
+    - arm64
+  runner:
+    language: python
+    version: "3.12"
+    entrypoint: main
+  minimum_dify_version: 1.9.0
+created_at: 2026-09-21T00:00:00+08:00
+privacy: PRIVACY.md
+repo: https://atomgit.com/xiaozhou1123/backend-copilot
+verified: true

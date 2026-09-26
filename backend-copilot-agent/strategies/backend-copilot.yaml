@@ -1,0 +1,114 @@
+identity:
+  name: backend-copilot
+  author: xiaozhou
+  label:
+    en_US: "Backend Copilot"
+    zh_Hans: "后端副驾"
+  description:
+    en_US: "Universal backend agent with API catalog and read-only guardrails"
+    zh_Hans: "通用后端 Agent：接口目录 + 只读护栏"
+  icon: icon.svg
+description:
+  en_US: "Universal backend agent: paste your API catalog YAML, attach the backend tools, and ask questions in natural language. Read-only guardrails by default."
+  zh_Hans: "通用后端 Agent：粘贴接口目录 YAML，挂载后端工具，用自然语言查询业务数据。默认只读护栏。"
+features:
+  - history-messages
+parameters:
+  - name: model
+    type: model-selector
+    scope: tool-call&llm
+    required: true
+    label:
+      en_US: Model
+      zh_Hans: 模型
+  - name: query
+    type: string
+    required: true
+    label:
+      en_US: Query
+      zh_Hans: 查询
+    help:
+      en_US: e.g. "How many open tickets this week?"
+      zh_Hans: 例如：本周有多少未处理工单？
+  - name: catalog_yaml
+    type: string
+    required: true
+    label:
+      en_US: API catalog (YAML)
+      zh_Hans: 接口目录（YAML）
+    auto_generate:
+      type: prompt_instruction
+    template:
+      enabled: true
+    help:
+      en_US: "Paste the catalog YAML (see plugin examples: bladex/ruoyi/demo)"
+      zh_Hans: "粘贴接口目录 YAML 内容（参考插件 examples 下的 bladex/ruoyi/demo 示例）"
+  - name: tools
+    type: array[tools]
+    required: true
+    label:
+      en_US: Backend tools
+      zh_Hans: 后端工具
+    help:
+      en_US: Attach the backend tools from this plugin (http_request)
+      zh_Hans: 挂载本插件的 backend 工具（http_request）
+  - name: readonly
+    type: boolean
+    required: false
+    default: true
+    label:
+      en_US: Read-only mode
+      zh_Hans: 只读模式
+    help:
+      en_US: "On: write APIs (write:true in catalog) are blocked. Off: they may run when the user explicitly asks."
+      zh_Hans: 开启后写接口（目录中 write:true）一律拦截；关闭后仅在用户明确要求写入时调用。
+  - name: allowed_tools
+    type: any
+    scope: array[string]
+    required: false
+    label:
+      en_US: Allowed tools
+      zh_Hans: 允许的工具
+    help:
+      en_US: Optional. Empty = all attached tools.
+      zh_Hans: 可选。留空表示全部已挂载工具。
+  - name: instruction
+    type: string
+    required: false
+    label:
+      en_US: Instruction
+      zh_Hans: 补充指令
+    help:
+      en_US: Answer style / constraints
+      zh_Hans: 对 Agent 的额外要求，如回答风格、约束
+  - name: max_steps
+    type: number
+    required: false
+    default: 20
+    label:
+      en_US: Max plan steps
+      zh_Hans: 计划步骤上限
+  - name: max_replan
+    type: number
+    required: false
+    default: 3
+    label:
+      en_US: Max replans
+      zh_Hans: 重规划上限
+  - name: max_execution_seconds
+    type: number
+    required: false
+    default: 600
+    label:
+      en_US: Execution budget (seconds)
+      zh_Hans: 执行时间预算（秒）
+  - name: output_variable
+    type: string
+    required: false
+    default: output
+    label:
+      en_US: Output variable
+      zh_Hans: 输出变量
+extra:
+  python:
+    source: strategies/backend-copilot.py

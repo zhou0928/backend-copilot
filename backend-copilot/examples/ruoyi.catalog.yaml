@@ -1,0 +1,75 @@
+# 示例接口目录 —— RuoYi 后端（Spring Boot 版，/prod-api 网关前缀）
+# 使用要点：
+#   1. base_url 改为你的 RuoYi 后端地址；RuoYi-Vue 默认接口前缀为 /prod-api
+#   2. RuoYi 登录返回固定结构 { code, msg, token }，token 直接放 Authorization 头
+#   3. 本目录仅含只读接口；写接口必须显式标记 write: true
+version: 1
+base_url: http://host.docker.internal:8080/prod-api
+auth:
+  type: bearer
+  # RuoYi /login 接口：JSON 体 { username, password, code, uuid }
+  # 若开启验证码，需关闭验证码开关或自行处理；token_path 取根级 token 字段
+  token_endpoint: /login
+  token_payload:
+    username: "{{username}}"
+    password: "{{password}}"
+  token_path: token               # RuoYi 响应结构与 BladeX 不同：token 在根级
+defaults:
+  timeout: 30
+  max_rows: 50
+apis:
+  - name: user_list
+    description: "分页查询系统用户列表，支持按用户名/手机号筛选"
+    method: GET
+    path: /system/user/list
+    params:
+      pageNum: { type: int, required: false, description: "页码，从 1 开始" }
+      pageSize: { type: int, required: false, description: "每页条数" }
+      userName: { type: string, required: false, description: "用户名（模糊匹配）" }
+      phonenumber: { type: string, required: false, description: "手机号" }
+      status: { type: string, required: false, description: "状态：0 正常，1 停用" }
+    pagination: { page_param: pageNum, size_param: pageSize, total_path: total }
+    result_path: rows              # RuoYi TableDataInfo：rows 数组 + total 在根级
+
+  - name: user_detail
+    description: "按用户 ID 查询用户详情（含角色与岗位）"
+    method: GET
+    path: /system/user/{userId}
+    params:
+      userId: { type: int, required: true, description: "用户 ID" }
+    result_path: data
+
+  - name: dept_tree
+    description: "查询部门树形结构"
+    method: GET
+    path: /system/user/deptTree
+    result_path: data
+
+  - name: role_list
+    description: "分页查询系统角色列表"
+    method: GET
+    path: /system/role/list
+    params:
+      pageNum: { type: int, required: false, description: "页码" }
+      pageSize: { type: int, required: false, description: "每页条数" }
+      roleName: { type: string, required: false, description: "角色名（模糊匹配）" }
+    pagination: { page_param: pageNum, size_param: pageSize, total_path: total }
+    result_path: rows
+
+  - name: logininfor_list
+    description: "分页查询登录日志（安全审计常用）"
+    method: GET
+    path: /monitor/logininfor/list
+    params:
+      pageNum: { type: int, required: false, description: "页码" }
+      pageSize: { type: int, required: false, description: "每页条数" }
+      userName: { type: string, required: false, description: "登录账号" }
+      ipaddr: { type: string, required: false, description: "登录 IP" }
+    pagination: { page_param: pageNum, size_param: pageSize, total_path: total }
+    result_path: rows
+
+  - name: server_info
+    description: "查询服务器监控信息（CPU/内存/JVM）"
+    method: GET
+    path: /monitor/server
+    result_path: data

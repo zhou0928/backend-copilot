@@ -1,0 +1,25 @@
+# 示例接口目录 —— 通用演示后端（JSONPlaceholder）
+# 复制此文件修改为你的后端接口即可接入 backend-copilot
+version: 1
+base_url: https://jsonplaceholder.typicode.com
+auth:
+  type: none                 # none | bearer | basic | apikey
+defaults:
+  timeout: 30
+  max_rows: 50
+apis:
+  - name: list_posts
+    description: "分页查询文章列表，返回 id/title/body 等字段"
+    method: GET
+    path: /posts
+    params:
+      userId: { type: int, required: false, description: "按用户 ID 过滤" }
+    pagination: { page_param: _page, size_param: _limit, total_header: X-Total-Count }
+    result_path: .
+  - name: get_post
+    description: "按 id 查询单篇文章详情"
+    method: GET
+    path: /posts/{id}
+    params:
+      id: { type: int, required: true, description: "文章 ID（路径参数）" }
+    result_path: .

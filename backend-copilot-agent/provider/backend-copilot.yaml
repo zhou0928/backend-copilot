@@ -1,0 +1,15 @@
+identity:
+  author: xiaozhou
+  name: backend-copilot-agent
+  label:
+    en_US: "Backend Copilot Agent"
+    zh_Hans: "后端副驾 Agent"
+  description:
+    en_US: "Universal backend agent: paste your API catalog YAML, attach the backend tools, and ask questions in natural language. Read-only guardrails by default."
+    zh_Hans: "通用后端 Agent:粘贴接口目录 YAML,挂载后端工具,用自然语言查询业务数据。默认只读护栏。"
+  icon: icon.svg
+strategies:
+  - strategies/backend-copilot.yaml
+extra:
+  python:
+    source: provider/backend-copilot.py

@@ -1,0 +1,37 @@
+identity:
+  name: http_request
+  author: xiaozhou
+  label:
+    en_US: Backend Request
+    zh_Hans: 后端请求
+description:
+  human:
+    en_US: "Call a registered API from your backend catalog (see examples/*.catalog.yaml). Read-only guardrails: write APIs must be marked write:true in the catalog."
+    zh_Hans: "调用接口目录中登记的后端接口（见 examples/*.catalog.yaml）。默认只读护栏：写接口必须在目录中标记 write:true。"
+  llm: "Invoke a registered backend API. Parameters: api_name (must exist in catalog), params (dict of query/body params). Returns JSON data truncated to max_rows."
+parameters:
+  - name: api_name
+    type: string
+    required: true
+    label:
+      en_US: API Name
+      zh_Hans: 接口名称
+    human_description:
+      en_US: "API name from your backend catalog"
+      zh_Hans: "接口目录中的接口名称"
+    llm_description: "调用接口目录中登记的后端接口。参数: api_name（必填）, params（JSON 字符串）"
+    form: llm
+  - name: params
+    type: string
+    required: false
+    label:
+      en_US: Params (JSON)
+      zh_Hans: 参数（JSON）
+    human_description:
+      en_US: "Query/body parameters as JSON string, e.g. {\"keyword\": \"ticket\"}"
+      zh_Hans: "查询/请求体参数，JSON 字符串，如 {\"keyword\": \"工单\"}；无参数传 {}"
+    llm_description: 'JSON 字符串形式的接口参数，如 {"keyword": "订单"}；无参数传 "{}"'
+    form: llm
+extra:
+  python:
+    source: tools/http_request.py

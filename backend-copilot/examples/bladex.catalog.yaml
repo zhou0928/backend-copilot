@@ -1,0 +1,90 @@
+# 示例接口目录 —— BladeX 后端（基于 oneLineCar 项目真实接口）
+# 使用要点：
+#   1. base_url 改为你的 BladeX 网关地址（容器内访问宿主机用 host.docker.internal）
+#   2. token_payload 中 username/password 在 Dify 插件安装时通过凭证表单填入
+#   3. 本目录仅含只读接口；写接口必须显式标记 write: true 才会被 agent 调用
+version: 1
+base_url: http://host.docker.internal:9998
+auth:
+  type: bearer
+  # BladeX OAuth2 password 模式：Basic(client_id:client_secret) 头 + 账密换 token，
+  # grant_type/scope 走 URL 查询参数，账密走 form 体（与前端 axios 行为一致）
+  # {{username}}/{{password}} 占位符在插件安装时由凭证表单替换
+  token_endpoint: /blade-auth/oauth/token
+  token_params:
+    grant_type: password
+    scope: all
+  token_body_format: form
+  token_payload:
+    username: "{{username}}"
+    password: "{{password}}"
+  token_extra_headers:
+    Authorization: "Basic c2FiZXI6c2FiZXJfc2VjcmV0"   # base64("saber:saber_secret")，按你的网关配置修改
+    Tenant-Id: "000000"
+  token_path: data.access_token
+defaults:
+  timeout: 30
+  max_rows: 50
+  # BladeX 网关要求每个业务请求带 Tenant-Id 与 Blade-Requested-With，缺失直接拒绝
+  extra_headers:
+    Tenant-Id: "000000"
+    Blade-Requested-With: BladeHttpRequest
+  # BladeX 业务信封 {code, success, data, msg}：code!=200 时 HTTP 仍是 200，需业务码校验
+  business_code_path: code
+  business_code_ok: 200
+apis:
+  - name: ticket_search
+    description: "分页查询工单列表，支持按关键字与状态过滤"
+    method: GET
+    path: /blade-ticket/ticket/list
+    params:
+      current: { type: int, required: false, description: "页码，从 1 开始" }
+      size: { type: int, required: false, description: "每页条数" }
+      keyword: { type: string, required: false, description: "标题关键字" }
+    pagination: { page_param: current, size_param: size, total_path: data.total }
+    result_path: data.records
+
+  - name: ticket_detail
+    description: "按 ID 查询工单详情"
+    method: GET
+    path: /blade-ticket/ticket/detail
+    params:
+      id: { type: int, required: true, description: "工单 ID" }
+    result_path: data
+
+  - name: ticket_comments
+    description: "分页查询工单评论"
+    method: GET
+    path: /blade-ticket/ticket-comment/page
+    params:
+      ticketId: { type: int, required: true, description: "工单 ID" }
+      current: { type: int, required: false, description: "页码" }
+      size: { type: int, required: false, description: "每页条数" }
+    pagination: { page_param: current, size_param: size, total_path: data.total }
+    result_path: data.records
+
+  - name: workflow_todo
+    description: "查询当前用户的流程待办列表"
+    method: GET
+    path: /blade-workflow/process/todoList
+    params:
+      current: { type: int, required: false, description: "页码" }
+      size: { type: int, required: false, description: "每页条数" }
+    pagination: { page_param: current, size_param: size, total_path: data.total }
+    result_path: data.records
+
+  - name: workflow_sent
+    description: "查询当前用户已发送的流程列表"
+    method: GET
+    path: /blade-workflow/process/sendList
+    params:
+      current: { type: int, required: false, description: "页码" }
+      size: { type: int, required: false, description: "每页条数" }
+    pagination: { page_param: current, size_param: size, total_path: data.total }
+    result_path: data.records
+
+  - name: workflow_stats
+    description: "查询当前用户的流程统计（待办数/已办数等汇总）"
+    method: GET
+    path: /blade-workflow/work/user-stats
+    result_path: data

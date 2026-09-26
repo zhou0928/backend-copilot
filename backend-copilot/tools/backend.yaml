@@ -1,0 +1,76 @@
+identity:
+  author: xiaozhou
+  name: backend
+  label:
+    en_US: Backend Copilot
+    zh_Hans: 后端副驾驶
+  description:
+    en_US: "Universal REST backend tools: call any registered API from your catalog with pluggable auth."
+    zh_Hans: "通用 REST 后端工具：按接口目录调用任意已登记的后端接口，支持多种鉴权。"
+  icon: icon.svg
+  tags:
+    - search
+credentials_for_provider:
+  base_url:
+    type: text-input
+    required: true
+    label:
+      en_US: Backend Base URL
+      zh_Hans: 后端服务地址
+    placeholder:
+      en_US: e.g. http://host.docker.internal:8101
+      zh_Hans: 例如 http://host.docker.internal:8101
+    help:
+      en_US: "Gateway/direct address reachable from the plugin container."
+      zh_Hans: "插件容器可达的网关或直连地址。"
+  catalog_yaml:
+    type: text-input
+    required: true
+    label:
+      en_US: API Catalog (YAML)
+      zh_Hans: 接口目录（YAML）
+    placeholder:
+      en_US: Paste full catalog YAML (see examples/*.catalog.yaml)
+      zh_Hans: 粘贴完整目录 YAML（参考 examples/*.catalog.yaml）
+    help:
+      en_US: "{{placeholders}} inside are replaced by the credential fields below."
+      zh_Hans: 其中的 {{占位符}} 会被下方凭证字段替换。
+  username:
+    type: text-input
+    required: false
+    label:
+      en_US: Username (replaces {{username}})
+      zh_Hans: 用户名（替换 {{username}}）
+  password:
+    type: secret-input
+    required: false
+    label:
+      en_US: Password (replaces {{password}})
+      zh_Hans: 密码（替换 {{password}}）
+  token:
+    type: secret-input
+    required: false
+    label:
+      en_US: Fixed token (replaces {{token}})
+      zh_Hans: 固定 token（替换 {{token}}）
+  captcha_code:
+    type: text-input
+    required: false
+    label:
+      en_US: Captcha code (two-step login)
+      zh_Hans: 图形验证码（两步登录）
+  allow_write:
+    type: text-input
+    required: false
+    default: "false"
+    label:
+      en_US: Allow write (true/false)
+      zh_Hans: 允许写操作（true/false）
+    help:
+      en_US: Master switch for write APIs. Directory must also mark write:true.
+      zh_Hans: 写操作总开关，目录还需显式标记 write:true 才会放行。
+tools:
+  - tools/http_request.yaml
+extra:
+  python:
+    source: tools/backend.py
