@@ -14,7 +14,15 @@ Calls the http_request tool against your backend (auth handled automatically)
 Answers: "17 open tickets this week, 3 of them unresponded for over 48h..."
 ```
 
-> 中文文档：[README.zh-CN.md](README.zh-CN.md)
+> Chinese docs: [README.zh-CN.md](README.zh-CN.md)
+
+**Source repository**: https://github.com/zhou0928/backend-copilot
+
+## Connection requirements
+
+- The plugin runs inside the Dify plugin container and makes outbound HTTP requests to the backend you register in the catalog (`base_url`).
+- To reach a service on the host machine from a self-hosted Docker deployment, use `http://host.docker.internal:<port>` (works on Docker and OrbStack). `localhost` inside the container refers to the container itself.
+- Required credentials are set on the plugin authorization page: backend base URL, the catalog YAML, and auth material (username/password for OAuth2 password grant, or a fixed token, or an API key). No other external services are contacted.
 
 ## Plugin composition
 

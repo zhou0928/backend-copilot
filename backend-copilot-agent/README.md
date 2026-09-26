@@ -4,7 +4,14 @@ A Dify **Agent strategy plugin**: a plan → execute → replan multi-step pipel
 
 > This plugin is the strategy only — it does not include the API catalog or HTTP tools. Install and configure the **backend-copilot** tools plugin first (catalog YAML, credentials, and the `http_request` tool all come from it). See its [README](../backend-copilot/README.md).
 >
-> 中文文档：[README.zh-CN.md](README.zh-CN.md)
+> Chinese docs: [README.zh-CN.md](README.zh-CN.md)
+
+**Source repository**: https://github.com/zhou0928/backend-copilot
+
+## Connection requirements
+
+- This strategy plugin contacts only the backend registered in the companion tools plugin's catalog; it requires no separate credentials or endpoints of its own.
+- The model you select in the Agent node must support tool-calling; the tools plugin must be authorized with a reachable backend `base_url` (use `http://host.docker.internal:<port>` for host services from the Dify container).
 
 ```
 User: "Of the tickets filed last week, which are still unassigned?"
